@@ -2,7 +2,7 @@
 
 DMGT Group Experiential Learning project. An interactive website that reads student–course registrations, builds the examination **conflict graph** automatically, colours it with **Greedy, Welsh–Powell, DSATUR** and an **exact branch-and-bound** method, verifies every edge, and turns colour classes into exam time slots. A second mode colours any simple graph with up to 50 vertices and 50 edges.
 
-**Live site:** `https://<your-github-username>.github.io/exam-scheduler/` *(after you enable GitHub Pages, see below)*
+**Live site:** `https://ayush12182.github.io/exam-scheduler/` *(after you enable GitHub Pages, see below)*
 
 ## Features
 
@@ -53,11 +53,11 @@ node tests/run_tests.js --json   # full results as JSON
    ```bash
    git init && git add . && git commit -m "Exam timetable scheduler"
    git branch -M main
-   git remote add origin https://github.com/<your-github-username>/exam-scheduler.git
+   git remote add origin https://github.com/ayush12182/exam-scheduler.git
    git push -u origin main
    ```
 3. Repository **Settings → Pages → Build and deployment → Source: Deploy from a branch**, branch **main**, folder **/ (root)**, **Save**.
-4. After about a minute the site is live at `https://<your-github-username>.github.io/exam-scheduler/`.
+4. After about a minute the site is live at `https://ayush12182.github.io/exam-scheduler/`.
 
 ## Results on the supplied dataset
 

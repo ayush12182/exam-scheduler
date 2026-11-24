@@ -4,7 +4,127 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Exam Timetable Scheduler — Vertex Colouring | DMGT</title>
-<link rel="stylesheet" href="css/style.css">
+<style>
+:root {
+  --ink: #14213d; --ink2: #3b4a68; --muted: #6b7690; --line: #dfe3ec; --bg: #f4f2ed; --card: #ffffff;
+  --navy: #13294b; --accent: #f2b705; --ok: #1f8a4c; --okbg: #e8f6ee; --bad: #c2362f; --badbg: #fdecea; --warn: #9a6700; --warnbg: #fff6dc;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 var(--sans); color: var(--ink); background: var(--bg); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; background: #eef1f6; padding: 1px 5px; border-radius: 4px; }
+[hidden] { display: none !important; }
+
+/* header */
+.top { background: var(--navy); color: #fff; padding: 14px 24px 0; display: grid; grid-template-columns: 1fr auto; gap: 10px 20px; align-items: center; }
+.brand { display: flex; gap: 14px; align-items: center; }
+.logo { width: 46px; height: 46px; border-radius: 12px; background: var(--accent); color: var(--navy); display: grid; place-items: center; font: 700 30px/1 var(--serif); font-style: italic; }
+.top h1 { margin: 0; font: 600 24px/1.15 var(--serif); letter-spacing: .2px; }
+.top .sub { margin: 2px 0 0; color: #b9c5dc; font-size: 12.5px; }
+#resetBtn { justify-self: end; color: #fff; border-color: #4b5f85; }
+#resetBtn:hover { background: #22406f; }
+.tabs { grid-column: 1 / -1; display: flex; gap: 4px; margin-top: 6px; }
+.tab { border: 0; border-radius: 10px 10px 0 0; padding: 10px 18px; background: #22406f; color: #c9d4ea; font: 600 13.5px var(--sans); cursor: pointer; }
+.tab.active { background: var(--bg); color: var(--navy); }
+
+/* layout */
+main { display: grid; grid-template-columns: minmax(330px, 410px) 1fr; gap: 18px; padding: 18px 24px; align-items: start; max-width: 1500px; margin: 0 auto; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(20,33,61,.04); }
+.card h2 { margin: 0 0 8px; font: 600 17px/1.3 var(--serif); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.card h2 small { font: 400 12.5px var(--sans); color: var(--muted); }
+.card h3 { margin: 14px 0 4px; font: 600 14px var(--sans); }
+.step { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; font: 600 12px var(--sans); }
+.hint { color: var(--muted); font-size: 12.5px; margin: 4px 0 10px; }
+.hint.small, .small.hint { font-size: 12px; margin: 6px 0 0; }
+.grid2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; margin-top: 16px; }
+@media (max-width: 1100px) { main { grid-template-columns: 1fr; } .grid2 { grid-template-columns: 1fr; } }
+
+/* controls */
+button, .filebtn { font: 600 13px var(--sans); border: 1px solid #c6cddb; background: #fff; color: var(--ink); padding: 8px 14px; border-radius: 9px; cursor: pointer; }
+button:hover:not(:disabled), .filebtn:hover { border-color: var(--navy); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+button.primary:hover:not(:disabled) { background: #1e3a66; }
+button.ghost { background: transparent; }
+button.small, .filebtn.small { padding: 5px 10px; font-size: 12.5px; }
+button.tiny { padding: 2px 8px; font-size: 11.5px; border-radius: 6px; }
+.filebtn input { display: none; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 10px; }
+.lbl { font-size: 12px; color: var(--muted); }
+textarea, input, select { width: 100%; font: 13px var(--mono); border: 1px solid #c6cddb; border-radius: 9px; padding: 8px 10px; background: #fbfcfe; color: var(--ink); }
+select { font-family: var(--sans); font-weight: 600; }
+textarea:focus, input:focus, select:focus { outline: 2px solid #9db6e3; border-color: var(--navy); }
+textarea { resize: vertical; margin-bottom: 10px; }
+.field { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.field small { font-weight: 400; color: var(--muted); }
+.field textarea, .field select { margin-top: 4px; }
+.formrow { display: grid; grid-template-columns: 1fr 1.7fr; gap: 6px; }
+.formrow input { font-family: var(--sans); }
+
+/* messages */
+.msgs { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow: auto; }
+.msg { padding: 6px 10px; border-radius: 8px; font-size: 12.5px; }
+.msg.err { background: var(--badbg); color: var(--bad); }
+.msg.warn { background: var(--warnbg); color: var(--warn); }
+.msg.ok { background: var(--okbg); color: var(--ok); }
+#limitMsg { margin-bottom: 8px; }
+
+/* tables */
+.tablewrap { overflow: auto; }
+.tablewrap.short { max-height: 280px; }
+table { border-collapse: collapse; width: 100%; font-size: 12.8px; }
+th { text-align: left; font-weight: 600; color: var(--ink2); background: #f3f5f9; position: sticky; top: 0; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.rule { color: var(--muted); font-size: 12px; max-width: 360px; }
+#cmpTable tbody tr { cursor: pointer; }
+#cmpTable tbody tr:hover { background: #f7f9fc; }
+tr.selrow { background: #fff8e1 !important; box-shadow: inset 3px 0 0 var(--accent); }
+.chip { display: inline-block; font: 12px var(--mono); background: #eef1f6; border: 1px solid #dde3ee; border-radius: 6px; padding: 1px 6px; margin: 1px 0; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.yes { color: var(--ok); font-weight: 600; } .no { color: var(--bad); font-weight: 600; } .muted { color: var(--muted); }
+table.tt td { padding: 8px; }
+details { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+
+/* graph */
+.graphhead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; }
+.lg i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.svgwrap { position: relative; background: radial-gradient(circle at 50% 45%, #fbfaf7 0, #f1efe9 100%); border: 1px solid var(--line); border-radius: 12px; }
+#graphSvg { width: 100%; height: auto; display: block; touch-action: none; }
+.empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-style: italic; }
+.edge { stroke: #9aa6bd; stroke-width: 1.6; }
+.edge.hot { stroke: var(--ink); stroke-width: 2.4; }
+.edge.bad { stroke: var(--bad); stroke-width: 3.5; stroke-dasharray: 6 4; }
+.edge:hover { stroke: var(--accent); stroke-width: 4; }
+.node { cursor: grab; }
+.node .disc { stroke: #fff; stroke-width: 2.5; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); transition: fill .25s; }
+.node .disc.blank { stroke: #9aa6bd; stroke-width: 1.5; }
+.node text { font-family: var(--mono); font-weight: 700; pointer-events: none; user-select: none; }
+.node .cbadge { font: 600 10px var(--sans); fill: var(--ink2); }
+.node .halo { fill: none; stroke: var(--accent); stroke-width: 4; }
+.stepbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.stcount { font-size: 12.5px; color: var(--muted); margin-left: 6px; font-variant-numeric: tabular-nums; }
+.speed { margin-left: auto; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.speed input { width: 110px; padding: 0; }
+.stnote { background: #f7f9fc; border-left: 3px solid var(--accent); padding: 8px 12px; margin: 8px 0 0; border-radius: 0 8px 8px 0; font-size: 13px; }
+
+/* results */
+.optbox { margin-top: 12px; background: #f7f9fc; border-radius: 10px; padding: 4px 14px 8px; }
+.optbox p { margin: 6px 0; }
+.verdict.good { color: var(--ok); } .verdict.meh { color: var(--warn); }
+.verify { border-radius: 10px; padding: 10px 14px; }
+.verify.good { background: var(--okbg); } .verify.bad { background: var(--badbg); }
+.verify .big { font: 700 16px var(--sans); }
+.verify.good .big { color: var(--ok); } .verify.bad .big { color: var(--bad); }
+.verify ul { margin: 6px 0 0; padding-left: 18px; }
+#dlCsv { margin-top: 10px; }
+footer { text-align: center; color: var(--muted); font-size: 12px; padding: 10px 24px 28px; }
+</style>
 </head>
 <body>
 <header class="top">
@@ -140,9 +260,906 @@
 
 <footer>Model the registration data · Construct the graph · Implement the colouring algorithm · Generate the timetable. &nbsp;All colouring algorithms are implemented from scratch in <code>js/engine.js</code>; no graph library is used.</footer>
 
-<script src="js/engine.js"></script>
-<script src="js/samples.js"></script>
-<script src="js/graphview.js"></script>
-<script src="js/app.js"></script>
+<script>
+/*
+ * engine.js — Shared graph-colouring engine
+ * DMGT Group Experiential Learning: Examination Timetable Scheduling
+ *
+ * Used by BOTH modes of the website (registration mode and general-graph mode)
+ * and by the Node test runner (tests/run_tests.js).  No external libraries.
+ *
+ * Contents
+ *   1. Limits & helpers
+ *   2. Registration parsing + validation          (Mode 1 input)
+ *   3. Conflict-graph construction                 (Mode 1 model)
+ *   4. General graph parsing + validation          (Mode 2 input)
+ *   5. Colouring algorithms: Greedy, Welsh–Powell, DSATUR
+ *   6. Exact method: max-clique lower bound + DSATUR branch-and-bound
+ *   7. Verification, colour classes, timetable
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.ColoringEngine = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------ *
+   * 1. Limits & helpers
+   * ------------------------------------------------------------------ */
+  const LIMITS = { maxVertices: 50, maxEdges: 50, minVertices: 1 };
+  const COURSE_RE = /^[A-Z0-9][A-Z0-9_]{1,19}$/;     // e.g. 25CS2304
+  const STUDENT_RE = /^[A-Za-z0-9_]{1,20}$/;         // e.g. S1
+  const LABEL_RE = /^[A-Za-z0-9_.]{1,20}$/;          // general-mode vertex label
+
+  const edgeKey = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+
+  // Build the internal graph representation shared by every algorithm.
+  // labels: array of unique vertex labels; pairs: array of [labelA, labelB].
+  function makeGraph(labels, pairs) {
+    const index = new Map(labels.map((l, i) => [l, i]));
+    const n = labels.length;
+    const adjSets = Array.from({ length: n }, () => new Set());
+    const edges = [];
+    for (const [a, b] of pairs) {
+      const i = index.get(a), j = index.get(b);
+      if (i === undefined || j === undefined || i === j || adjSets[i].has(j)) continue;
+      adjSets[i].add(j); adjSets[j].add(i);
+      edges.push(i < j ? [i, j] : [j, i]);
+    }
+    const adj = adjSets.map(s => Array.from(s).sort((x, y) => x - y));
+    return { n, m: edges.length, labels: labels.slice(), index, adj, adjSets, edges,
+             degree: adj.map(a => a.length) };
+  }
+
+  function checkLimits(g) {
+    const errors = [];
+    if (g.n < LIMITS.minVertices) errors.push('The graph has no vertices (need at least 1).');
+    if (g.n > LIMITS.maxVertices)
+      errors.push(`The graph has ${g.n} vertices; the colouring engine accepts at most ${LIMITS.maxVertices}. No vertices were removed — reduce the input.`);
+    if (g.m > LIMITS.maxEdges)
+      errors.push(`The graph has ${g.m} edges; the colouring engine accepts at most ${LIMITS.maxEdges}. No edges were removed — reduce the input.`);
+    return errors;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 2. Registration parsing + validation
+   *    Accepted line formats (one student per line):
+   *      S1,25CS2304,25CS2101,25CS2203          (CSV)
+   *      S1: 25CS2304, 25CS2101, 25CS2203       (colon form)
+   *    A header line beginning with "Student" is skipped. '#' starts a comment.
+   * ------------------------------------------------------------------ */
+  function parseRegistrations(text) {
+    const errors = [], warnings = [];
+    const students = new Map();          // studentId -> array of distinct courses (insertion order)
+    const lines = String(text || '').replace(/\r/g, '').split('\n');
+    let dataLines = 0, duplicateRegs = 0;
+
+    lines.forEach((raw, idx) => {
+      const ln = idx + 1;
+      const line = raw.replace(/#.*$/, '').trim();
+      if (!line) return;
+      let id, rest;
+      const colon = line.indexOf(':');
+      if (colon >= 0) { id = line.slice(0, colon); rest = line.slice(colon + 1).split(/[,;\t]/); }
+      else { const cells = line.split(/[,;\t]/); id = cells[0]; rest = cells.slice(1); }
+      id = id.trim().replace(/^"|"$/g, '');
+
+      if (idx === 0 && /^student/i.test(id)) return;   // header row
+      dataLines++;
+
+      if (!id) { errors.push(`Line ${ln}: missing student ID.`); return; }
+      if (!STUDENT_RE.test(id)) { errors.push(`Line ${ln}: invalid student ID "${id}" (letters, digits, _ only).`); return; }
+
+      const cells = rest.map(c => c.trim().replace(/^"|"$/g, ''));
+      // empty cells: trailing ones are CSV padding (row shorter than header) -> warn; inner ones -> error
+      let last = cells.length - 1;
+      while (last >= 0 && cells[last] === '') last--;
+      const trailingEmpty = cells.length - 1 - last;
+      const used = cells.slice(0, last + 1);
+      if (trailingEmpty > 0 && used.length > 0)
+        warnings.push(`Line ${ln} (${id}): ${trailingEmpty} empty trailing cell(s) — row has fewer courses than other rows.`);
+
+      const courses = [];
+      let bad = false;
+      used.forEach((c, k) => {
+        if (c === '') { errors.push(`Line ${ln} (${id}): missing value in course position ${k + 1}.`); bad = true; return; }
+        const code = c.toUpperCase().replace(/\s+/g, '');
+        if (!COURSE_RE.test(code)) { errors.push(`Line ${ln} (${id}): invalid course code "${c}".`); bad = true; return; }
+        courses.push(code);
+      });
+      if (bad) return;
+      if (courses.length === 0) { errors.push(`Line ${ln} (${id}): missing values — no courses listed.`); return; }
+
+      if (students.has(id))
+        warnings.push(`Line ${ln}: student ${id} appears more than once — registrations merged.`);
+      const list = students.get(id) || [];
+      for (const c of courses) {
+        if (list.includes(c)) {
+          duplicateRegs++;
+          warnings.push(`Line ${ln}: repeated registration ${id}–${c} — counted once (a repeated pair creates no new conflict).`);
+        } else list.push(c);
+      }
+      students.set(id, list);
+    });
+
+    if (dataLines === 0) errors.push('No registration data entered.');
+    const courseSet = new Set();
+    for (const cs of students.values()) cs.forEach(c => courseSet.add(c));
+    const courses = Array.from(courseSet).sort();
+    return { students, courses, errors, warnings, duplicateRegs,
+             registrations: Array.from(students.values()).reduce((s, a) => s + a.length, 0) };
+  }
+
+  // Serialise the registration relation back to CSV text (used by the dynamic-update editor).
+  function registrationsToText(students) {
+    return Array.from(students.entries()).map(([s, cs]) => `${s},${cs.join(',')}`).join('\n');
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 3. Conflict-graph construction
+   *    V = set of distinct courses; {ci,cj} in E iff some student takes both.
+   *    For every student every unordered pair of their courses is examined
+   *    (k courses -> k(k-1)/2 pairs); a Set of keys collapses repeats so the
+   *    graph is simple.  Witness students are recorded for each edge.
+   * ------------------------------------------------------------------ */
+  function buildConflictGraph(students) {
+    const courseSet = new Set();
+    for (const cs of students.values()) cs.forEach(c => courseSet.add(c));
+    const labels = Array.from(courseSet).sort();
+    const witnesses = new Map();   // edgeKey -> [students]
+    let pairChecks = 0;
+    for (const [s, cs] of students.entries()) {
+      for (let i = 0; i < cs.length; i++)
+        for (let j = i + 1; j < cs.length; j++) {
+          pairChecks++;
+          if (cs[i] === cs[j]) continue;                // never a self-loop
+          const k = edgeKey(cs[i], cs[j]);
+          if (!witnesses.has(k)) witnesses.set(k, []);
+          witnesses.get(k).push(s);
+        }
+    }
+    const pairs = Array.from(witnesses.keys()).map(k => k.split('|'));
+    const g = makeGraph(labels, pairs);
+    g.witnesses = witnesses;
+    g.pairChecks = pairChecks;
+    g.repeatedConflicts = pairChecks - g.m;
+    return g;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 4. General graph parsing + validation (Mode 2)
+   *    Vertices: labels separated by commas, spaces or new lines.
+   *    Edges: one per line, "A B", "A,B", "A-B" or "A--B".
+   *    Invalid input is REPORTED, never silently dropped.
+   * ------------------------------------------------------------------ */
+  function parseGeneralGraph(vText, eText) {
+    const errors = [];
+    const labels = [];
+    const seen = new Set();
+    const tokens = String(vText || '').split(/[\s,;]+/).filter(Boolean);
+    tokens.forEach(t => {
+      if (!LABEL_RE.test(t)) errors.push(`Vertex "${t}": invalid label (use letters, digits, _ or ., max 20 chars; "-" is reserved for edges).`);
+      else if (seen.has(t)) errors.push(`Vertex "${t}" is listed more than once.`);
+      else { seen.add(t); labels.push(t); }
+    });
+    if (tokens.length === 0) errors.push('Enter at least one vertex label.');
+    if (labels.length > LIMITS.maxVertices)
+      errors.push(`${labels.length} vertices entered; the limit is ${LIMITS.maxVertices}.`);
+
+    const pairs = [];
+    const edgeLine = new Map();
+    const lines = String(eText || '').replace(/\r/g, '').split('\n');
+    lines.forEach((raw, idx) => {
+      const ln = idx + 1;
+      const line = raw.replace(/#.*$/, '').trim();
+      if (!line) return;
+      const parts = line.split(/\s*(?:--|-|,|\s)\s*/).filter(Boolean);
+      if (parts.length !== 2) { errors.push(`Edge line ${ln} "${line}": expected exactly two vertex labels (e.g. "A-B").`); return; }
+      const [a, b] = parts;
+      let ok = true;
+      if (!seen.has(a)) { errors.push(`Edge line ${ln} "${line}": unknown vertex "${a}".`); ok = false; }
+      if (!seen.has(b)) { errors.push(`Edge line ${ln} "${line}": unknown vertex "${b}".`); ok = false; }
+      if (!ok) return;
+      if (a === b) { errors.push(`Edge line ${ln} "${line}": self-loop on "${a}" is not allowed in a simple graph.`); return; }
+      const k = edgeKey(a, b);
+      if (edgeLine.has(k)) { errors.push(`Edge line ${ln} "${line}": duplicate of edge on line ${edgeLine.get(k)}.`); return; }
+      edgeLine.set(k, ln);
+      pairs.push([a, b]);
+    });
+    if (pairs.length > LIMITS.maxEdges)
+      errors.push(`${pairs.length} edges entered; the limit is ${LIMITS.maxEdges}.`);
+
+    const graph = errors.length ? null : makeGraph(labels, pairs);
+    return { graph, errors, labels, pairs };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 5. Colouring algorithms
+   *    Every algorithm returns:
+   *      { name, colors[] (1-based, index = vertex), k, order[], steps[] }
+   *    steps[] drives the step-by-step animation in the UI.
+   * ------------------------------------------------------------------ */
+
+  // smallest colour >= 1 not used by an already-coloured neighbour
+  function smallestFree(g, colors, v) {
+    const used = new Set();
+    for (const u of g.adj[v]) if (colors[u]) used.add(colors[u]);
+    let c = 1;
+    while (used.has(c)) c++;
+    return { c, used: Array.from(used).sort((a, b) => a - b) };
+  }
+
+  // 5a. Greedy (sequential) colouring in the given vertex order (default: input order).
+  function greedy(g, order) {
+    order = order || g.labels.map((_, i) => i);
+    const colors = new Array(g.n).fill(0), steps = [];
+    for (const v of order) {
+      const { c, used } = smallestFree(g, colors, v);
+      colors[v] = c;
+      steps.push({ v, color: c, note: `Next vertex in input order. Neighbour colours {${used.join(', ') || '—'}} → smallest free colour ${c}.` });
+    }
+    return finish('Greedy', g, colors, order, steps);
+  }
+
+  // 5b. Welsh–Powell: sort by degree (descending, ties by input order).
+  //     For colour c = 1,2,…: scan the list, give c to every uncoloured vertex
+  //     not adjacent to a vertex already coloured c in this pass.
+  function welshPowell(g) {
+    const order = g.labels.map((_, i) => i).sort((a, b) => g.degree[b] - g.degree[a] || a - b);
+    const colors = new Array(g.n).fill(0), steps = [];
+    let colored = 0, c = 0;
+    while (colored < g.n) {
+      c++;
+      const inClass = [];
+      for (const v of order) {
+        if (colors[v]) continue;
+        if (g.adj[v].some(u => colors[u] === c)) continue;
+        colors[v] = c; inClass.push(v); colored++;
+        steps.push({ v, color: c, note: `Pass for colour ${c}: deg(${g.labels[v]}) = ${g.degree[v]}; not adjacent to any vertex already coloured ${c}.` });
+      }
+    }
+    return finish('Welsh–Powell', g, colors, order, steps);
+  }
+
+  // 5c. DSATUR (Brélaz 1979): repeatedly pick the uncoloured vertex with the
+  //     largest saturation degree (number of DISTINCT colours among its
+  //     neighbours); ties -> largest degree in the uncoloured subgraph -> input order.
+  function dsatur(g) {
+    const colors = new Array(g.n).fill(0), steps = [], order = [];
+    const satSets = Array.from({ length: g.n }, () => new Set());
+    const uncolDeg = g.degree.slice();
+    for (let it = 0; it < g.n; it++) {
+      let best = -1;
+      for (let v = 0; v < g.n; v++) {
+        if (colors[v]) continue;
+        if (best < 0 || satSets[v].size > satSets[best].size ||
+            (satSets[v].size === satSets[best].size && uncolDeg[v] > uncolDeg[best])) best = v;
+      }
+      const { c } = smallestFree(g, colors, best);
+      const sat = satSets[best].size, ud = uncolDeg[best];
+      colors[best] = c; order.push(best);
+      for (const u of g.adj[best]) { satSets[u].add(c); uncolDeg[u]--; }
+      steps.push({ v: best, color: c, note: `Highest saturation = ${sat} (tie-break: uncoloured-degree ${ud}) → smallest free colour ${c}.` });
+    }
+    return finish('DSATUR', g, colors, order, steps);
+  }
+
+  function finish(name, g, colors, order, steps) {
+    const k = g.n ? Math.max(...colors) : 0;
+    return { name, colors, k, order, steps };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 6. Exact method
+   *    6a. Maximum clique (Bron–Kerbosch with pivoting) -> lower bound ω(G) ≤ χ(G)
+   *    6b. DSATUR-based branch-and-bound -> exact χ(G) (with node budget)
+   * ------------------------------------------------------------------ */
+  function maxClique(g) {
+    let best = [];
+    const N = g.adjSets;
+    function bk(R, P, X) {
+      if (P.length === 0 && X.length === 0) { if (R.length > best.length) best = R.slice(); return; }
+      if (R.length + P.length <= best.length) return;                 // bound
+      const pivotPool = P.concat(X);
+      let pivot = pivotPool[0], bestCnt = -1;
+      for (const u of pivotPool) { let cnt = 0; for (const w of P) if (N[u].has(w)) cnt++; if (cnt > bestCnt) { bestCnt = cnt; pivot = u; } }
+      for (const v of P.filter(w => !N[pivot].has(w))) {
+        bk(R.concat([v]), P.filter(w => N[v].has(w)), X.filter(w => N[v].has(w)));
+        P = P.filter(w => w !== v); X = X.concat([v]);
+      }
+    }
+    bk([], g.labels.map((_, i) => i), []);
+    return best.sort((a, b) => a - b);
+  }
+
+  function exactChromatic(g, opts) {
+    const budget = (opts && opts.nodeLimit) || 5e6;
+    if (g.n === 0) return { name: 'Exact (B&B)', colors: [], k: 0, chi: 0, proved: true, lowerBound: 0, clique: [], nodes: 0, method: 'empty graph', steps: [], order: [] };
+    const clique = maxClique(g);
+    const lb = Math.max(1, clique.length);
+    const start = dsatur(g);
+    let bestK = start.k, bestColors = start.colors.slice(), nodes = 0, aborted = false;
+
+    if (bestK > lb) {
+      const colors = new Array(g.n).fill(0);
+      // seed the clique with fixed colours 1..|Q| (symmetry breaking)
+      clique.forEach((v, i) => { colors[v] = i + 1; });
+      const satCount = Array.from({ length: g.n }, () => new Map()); // colour -> count among neighbours
+      const addColor = (v, c) => { for (const u of g.adj[v]) { const m = satCount[u]; m.set(c, (m.get(c) || 0) + 1); } };
+      const remColor = (v, c) => { for (const u of g.adj[v]) { const m = satCount[u]; const x = m.get(c) - 1; if (x) m.set(c, x); else m.delete(c); } };
+      clique.forEach(v => addColor(v, colors[v]));
+      let remaining = g.n - clique.length;
+
+      const search = (maxUsed) => {
+        if (aborted) return;
+        if (++nodes > budget) { aborted = true; return; }
+        if (remaining === 0) { bestK = maxUsed; bestColors = colors.slice(); return; }
+        // choose uncoloured vertex with max saturation, tie -> degree
+        let v = -1;
+        for (let u = 0; u < g.n; u++) {
+          if (colors[u]) continue;
+          if (v < 0 || satCount[u].size > satCount[v].size ||
+              (satCount[u].size === satCount[v].size && g.degree[u] > g.degree[v])) v = u;
+        }
+        const limit = Math.min(maxUsed + 1, bestK - 1);
+        for (let c = 1; c <= limit; c++) {
+          if (satCount[v].has(c)) continue;
+          colors[v] = c; addColor(v, c); remaining--;
+          search(Math.max(maxUsed, c));
+          remaining++; remColor(v, c); colors[v] = 0;
+          if (bestK === lb || aborted) return;          // cannot do better than the clique bound
+        }
+      };
+      search(clique.length);
+    }
+    const proved = !aborted;
+    return {
+      name: 'Exact (B&B)', colors: bestColors, k: bestK, chi: proved ? bestK : null, proved,
+      lowerBound: lb, clique, nodes,
+      method: bestK === lb && nodes === 0 ? `clique bound: ω(G) = ${lb} equals DSATUR's ${bestK} colours`
+             : proved ? `branch-and-bound searched ${nodes} nodes; no ${bestK - 1}-colouring exists` : `node budget (${budget}) exhausted — best found ${bestK}, lower bound ${lb}`,
+      order: [], steps: bestColors.map((c, v) => ({ v, color: c, note: 'Colour from exact search.' }))
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 7. Verification, colour classes, timetable
+   * ------------------------------------------------------------------ */
+  function verify(g, colors) {
+    const conflicts = [], uncolored = [];
+    g.labels.forEach((_, v) => { if (!colors[v]) uncolored.push(v); });
+    for (const [a, b] of g.edges) if (colors[a] && colors[a] === colors[b]) conflicts.push([a, b, colors[a]]);
+    return { valid: conflicts.length === 0 && uncolored.length === 0, edgesChecked: g.m, conflicts, uncolored };
+  }
+
+  function colorClasses(g, colors) {
+    const k = g.n ? Math.max(0, ...colors) : 0;
+    const classes = Array.from({ length: k }, () => []);
+    colors.forEach((c, v) => { if (c) classes[c - 1].push(g.labels[v]); });
+    return classes;
+  }
+
+  // Timetable for registration mode: one slot per colour class.
+  // Also re-checks every student's exams directly (independent second check).
+  function buildTimetable(g, colors, students) {
+    const classes = colorClasses(g, colors);
+    const slotOf = new Map(g.labels.map((l, i) => [l, colors[i]]));
+    const slots = classes.map((courses, i) => {
+      const sitting = new Set();
+      for (const [s, cs] of students.entries()) if (cs.some(c => courses.includes(c))) sitting.add(s);
+      return { slot: i + 1, courses, students: sitting.size };
+    });
+    const clashes = [];
+    for (const [s, cs] of students.entries()) {
+      const bySlot = new Map();
+      for (const c of cs) { const t = slotOf.get(c); if (bySlot.has(t)) clashes.push(`${s}: ${bySlot.get(t)} & ${c} both in slot ${t}`); else bySlot.set(t, c); }
+    }
+    return { slots, clashes };
+  }
+
+  // Run an algorithm by key, timing it (median-free mean over repeated runs).
+  const ALGORITHMS = {
+    greedy: { label: 'Greedy (input order)', fn: g => greedy(g) },
+    wp: { label: 'Welsh–Powell', fn: g => welshPowell(g) },
+    dsatur: { label: 'DSATUR', fn: g => dsatur(g) },
+    exact: { label: 'Exact (branch-and-bound)', fn: g => exactChromatic(g) },
+  };
+  function now() { return (typeof performance !== 'undefined' ? performance.now() : Date.now()); }
+  function runTimed(key, g, minMs) {
+    const algo = ALGORITHMS[key];
+    let reps = 0, t0 = now(), res;
+    do { res = algo.fn(g); reps++; } while (now() - t0 < (minMs || 20) && reps < 2000);
+    const ms = (now() - t0) / reps;
+    res.ms = ms; res.key = key; res.label = algo.label;
+    return res;
+  }
+
+  return {
+    LIMITS, makeGraph, checkLimits, parseRegistrations, registrationsToText, buildConflictGraph,
+    parseGeneralGraph, greedy, welshPowell, dsatur, maxClique, exactChromatic,
+    verify, colorClasses, buildTimetable, ALGORITHMS, runTimed, edgeKey,
+  };
+});
+</script>
+<script>
+/* Sample INPUT data only (auto-generated from data/ by tests/build_samples.js). No graph, colouring or timetable is stored here. */
+window.SAMPLES = {
+ "registrations": "Student,Course1,Course2,Course3\nS1,25CS2304,25CS2101,25CS2203\nS2,25CS2101,25CS2201,25CS2302\nS3,25CS2304,25CS2303,25CS2103\nS4,25CS2201,25CS2302,25CS2102\nS5,25CS2101,25CS2203,25CS2401\nS6,25CS2304,25CS2201,25CS2102\nS7,25CS2303,25CS2302,25CS2401\nS8,25CS2103,25CS2304,25CS2203\nS9,25CS2201,25CS2102,25CS2401\nS10,25CS2302,25CS2303,25CS2101\nS11,25CS2101,25CS2302,25CS2103\nS12,25CS2203,25CS2102,25CS2401\nS13,25CS2304,25CS2103,25CS2201\nS14,25CS2201,25CS2303,25CS2401\nS15,25CS2304,25CS2302,25CS2102\nS16,25CS2101,25CS2203,25CS2303\nS17,25CS2202,25CS2304,25CS2102\nS18,25CS2102,25CS2303,25CS2401\nS19,25CS2201,25CS2302,25CS2103\nS20,25CS2304,25CS2101,25CS2401",
+ "modified": "Student,Course1,Course2,Course3,Course4\nS1,25CS2304,25CS2101,25CS2203\nS2,25CS2101,25CS2201,25CS2302\nS3,25CS2304,25CS2303,25CS2103\nS4,25CS2201,25CS2302,25CS2102\nS5,25CS2101,25CS2203,25CS2401\nS6,25CS2304,25CS2201,25CS2102\nS7,25CS2303,25CS2302,25CS2401\nS8,25CS2103,25CS2304,25CS2203\nS9,25CS2201,25CS2102,25CS2401\nS10,25CS2302,25CS2303,25CS2101\nS11,25CS2101,25CS2302,25CS2103\nS12,25CS2203,25CS2102,25CS2401\nS13,25CS2304,25CS2103,25CS2201\nS14,25CS2201,25CS2303,25CS2401\nS15,25CS2304,25CS2302,25CS2102\nS16,25CS2101,25CS2203,25CS2303\nS17,25CS2202,25CS2304,25CS2102,25CS2103\nS18,25CS2102,25CS2303,25CS2401\nS19,25CS2201,25CS2302,25CS2103\nS20,25CS2304,25CS2101,25CS2401\nS21,25CS2202,25CS2401,25CS2303\nS22,25CS2501",
+ "crown": {
+  "v": "u1, v1, u2, v2, u3, v3, u4, v4, u5, v5",
+  "e": "u1-v2\nu1-v3\nu1-v4\nu1-v5\nu2-v1\nu2-v3\nu2-v4\nu2-v5\nu3-v1\nu3-v2\nu3-v4\nu3-v5\nu4-v1\nu4-v2\nu4-v3\nu4-v5\nu5-v1\nu5-v2\nu5-v3\nu5-v4"
+ },
+ "grotzsch": {
+  "v": "u1, u2, u3, u4, u5, v1, v2, v3, v4, v5, w",
+  "e": "u1-u2\nu2-u3\nu3-u4\nu4-u5\nu5-u1\nv1-u5\nv2-u1\nv3-u2\nv4-u3\nv5-u4\nv1-u2\nv2-u3\nv3-u4\nv4-u5\nv5-u1\nw-v1\nw-v2\nw-v3\nw-v4\nw-v5"
+ },
+ "boundary": {
+  "v": "V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20, V21, V22, V23, V24, V25, V26, V27, V28, V29, V30",
+  "e": "V1-V12\nV1-V17\nV1-V2\nV1-V22\nV1-V3\nV1-V4\nV1-V8\nV10-V15\nV10-V18\nV10-V19\nV10-V4\nV11-V3\nV11-V4\nV11-V7\nV12-V13\nV12-V15\nV13-V16\nV13-V18\nV13-V19\nV13-V9\nV14-V16\nV14-V19\nV14-V3\nV14-V4\nV15-V19\nV15-V21\nV15-V4\nV16-V17\nV16-V18\nV16-V22\nV16-V5\nV17-V20\nV17-V21\nV17-V22\nV17-V9\nV18-V20\nV18-V3\nV18-V9\nV19-V8\nV2-V3\nV2-V4\nV2-V5\nV20-V3\nV20-V4\nV21-V5\nV23-V24\nV24-V25\nV25-V26\nV3-V4\nV4-V8"
+ },
+ "empty": {
+  "v": "A, B, C, D, E",
+  "e": ""
+ }
+};
+</script>
+<script>
+/*
+ * graphview.js — minimal SVG graph renderer (no external library).
+ * Circular layout for small graphs, deterministic force-directed layout for larger ones.
+ * Positions are remembered per label so a dynamic update keeps the picture stable.
+ */
+(function (root) {
+  'use strict';
+  const NS = 'http://www.w3.org/2000/svg';
+  const W = 800, H = 520;
+  const PALETTE = ['#2f6db5', '#e8862a', '#3d9a52', '#d6454a', '#8e63b8', '#d9b42c', '#2aa3a0', '#e77fae', '#8a6447', '#6b7a8f', '#9bbb2f', '#c0507d'];
+  function colorOf(c) {
+    if (!c) return '#e5e7eb';
+    if (c <= PALETTE.length) return PALETTE[c - 1];
+    return `hsl(${(c * 137.508) % 360},60%,48%)`;
+  }
+  function textOn(hex) {
+    if (!hex.startsWith('#')) return '#fff';
+    const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 165 ? '#1f2937' : '#fff';
+  }
+  const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+  function GraphView(svg) {
+    this.svg = svg; this.pos = new Map(); this.graph = null; this.state = {};
+  }
+
+  GraphView.prototype.radius = function () {
+    const g = this.graph; const maxLen = Math.max(1, ...g.labels.map(l => l.length));
+    const base = maxLen > 5 ? 31 : maxLen > 2 ? 22 : 18;
+    return g.n > 30 ? base * 0.72 : g.n > 16 ? base * 0.85 : base;
+  };
+
+  GraphView.prototype.layout = function (g) {
+    const known = g.labels.filter(l => this.pos.has(l)).length;
+    if (known === g.n && g.n > 0) return;                       // keep existing picture
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 50;
+    const fresh = new Map();
+    if (g.n <= 14 || known > 0) {
+      // circular layout (new vertices of a dynamic update are slotted onto the circle)
+      g.labels.forEach((l, i) => {
+        const a = -Math.PI / 2 + (2 * Math.PI * i) / g.n;
+        fresh.set(l, this.pos.get(l) || { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
+      });
+      if (known > 0) {
+        // place newly added vertices on free circle positions
+        g.labels.forEach((l, i) => { if (!this.pos.has(l)) { const a = -Math.PI / 2 + (2 * Math.PI * i) / g.n + 0.18; fresh.set(l, { x: cx + (R + 8) * Math.cos(a), y: cy + (R + 8) * Math.sin(a) }); } });
+      }
+    } else {
+      // Fruchterman–Reingold, deterministic start on a circle
+      const P = g.labels.map((l, i) => { const a = (2 * Math.PI * i) / g.n; return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a), dx: 0, dy: 0 }; });
+      const k = Math.sqrt((W * H) / Math.max(1, g.n)) * 0.75;
+      let t = 60;
+      for (let it = 0; it < 400; it++) {
+        P.forEach(p => { p.dx = 0; p.dy = 0; });
+        for (let i = 0; i < g.n; i++) for (let j = i + 1; j < g.n; j++) {
+          let dx = P[i].x - P[j].x, dy = P[i].y - P[j].y; const d = Math.max(0.01, Math.hypot(dx, dy));
+          const f = (k * k) / d; dx /= d; dy /= d;
+          P[i].dx += dx * f; P[i].dy += dy * f; P[j].dx -= dx * f; P[j].dy -= dy * f;
+        }
+        for (const [a, b] of g.edges) {
+          let dx = P[a].x - P[b].x, dy = P[a].y - P[b].y; const d = Math.max(0.01, Math.hypot(dx, dy));
+          const f = (d * d) / k; dx /= d; dy /= d;
+          P[a].dx -= dx * f; P[a].dy -= dy * f; P[b].dx += dx * f; P[b].dy += dy * f;
+        }
+        P.forEach(p => {
+          p.dx += (cx - p.x) * 0.06; p.dy += (cy - p.y) * 0.06;      // gravity keeps components on screen
+          const d = Math.max(0.01, Math.hypot(p.dx, p.dy));
+          p.x += (p.dx / d) * Math.min(d, t); p.y += (p.dy / d) * Math.min(d, t);
+          p.x = Math.min(W - 30, Math.max(30, p.x)); p.y = Math.min(H - 30, Math.max(30, p.y));
+        });
+        t = Math.max(1, t * 0.985);
+      }
+      g.labels.forEach((l, i) => fresh.set(l, { x: P[i].x, y: P[i].y }));
+    }
+    this.pos = fresh;
+  };
+
+  GraphView.prototype.setGraph = function (g, opts) {
+    if (opts && opts.resetLayout) this.pos = new Map();
+    this.graph = g; this.layout(g); this.state = {}; this.render();
+  };
+
+  // state: { colors:[], active: vertexIndex, conflicts:Set(edgeKey) }
+  GraphView.prototype.update = function (state) { this.state = state || {}; this.render(); };
+
+  GraphView.prototype.render = function () {
+    const svg = this.svg, g = this.graph, st = this.state;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    if (!g) return;
+    const r = this.radius();
+    const P = g.labels.map(l => this.pos.get(l));
+    const eg = el('g', { class: 'edges' }), ng = el('g', { class: 'nodes' });
+    g.edges.forEach(([a, b]) => {
+      const key = a + '-' + b;
+      const bad = st.conflicts && st.conflicts.has(key);
+      const hot = st.active != null && (a === st.active || b === st.active);
+      const line = el('line', { x1: P[a].x, y1: P[a].y, x2: P[b].x, y2: P[b].y, class: 'edge' + (bad ? ' bad' : '') + (hot ? ' hot' : '') });
+      const t = el('title', {});
+      const w = g.witnesses && g.witnesses.get(root.ColoringEngine.edgeKey(g.labels[a], g.labels[b]));
+      t.textContent = `${g.labels[a]} — ${g.labels[b]}` + (w ? `\nShared by: ${w.join(', ')}` : '') + (bad ? '\n✗ same colour on both ends!' : '');
+      line.appendChild(t); eg.appendChild(line);
+    });
+    g.labels.forEach((l, v) => {
+      const c = st.colors ? st.colors[v] : 0;
+      const fill = colorOf(c);
+      const grp = el('g', { class: 'node' + (v === st.active ? ' active' : ''), transform: `translate(${P[v].x},${P[v].y})` });
+      if (v === st.active) grp.appendChild(el('circle', { r: r + 7, class: 'halo' }));
+      grp.appendChild(el('circle', { r, fill, class: 'disc' + (c ? '' : ' blank') }));
+      const fs = Math.max(9, Math.min(14, (r * 2.3) / Math.max(2, l.length) * 1.25));
+      const tx = el('text', { 'text-anchor': 'middle', dy: '0.35em', 'font-size': fs.toFixed(1), fill: c ? textOn(fill) : '#374151' });
+      tx.textContent = l; grp.appendChild(tx);
+      if (c) { const b = el('text', { 'text-anchor': 'middle', y: r + 13, class: 'cbadge' }); b.textContent = (st.badge || 'colour') + ' ' + c; if (!st.hideBadges) grp.appendChild(b); }
+      const tt = el('title', {}); tt.textContent = `${l}\ndegree ${g.degree[v]}` + (c ? `\ncolour ${c}` : ''); grp.appendChild(tt);
+      this.drag(grp, l);
+      ng.appendChild(grp);
+    });
+    svg.appendChild(eg); svg.appendChild(ng);
+  };
+
+  GraphView.prototype.drag = function (node, label) {
+    const svg = this.svg, self = this;
+    node.addEventListener('pointerdown', ev => {
+      ev.preventDefault(); node.setPointerCapture(ev.pointerId);
+      const move = e => {
+        const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+        const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+        self.pos.set(label, { x: Math.min(W - 20, Math.max(20, p.x)), y: Math.min(H - 20, Math.max(20, p.y)) });
+        self.render();
+      };
+      const up = () => { node.removeEventListener('pointermove', move); node.removeEventListener('pointerup', up); svg.removeEventListener('pointermove', move); };
+      svg.addEventListener('pointermove', move); node.addEventListener('pointerup', up); svg.addEventListener('pointerup', up, { once: true });
+    });
+  };
+
+  GraphView.colorOf = colorOf; GraphView.textOn = textOn;
+  root.GraphView = GraphView;
+})(typeof self !== 'undefined' ? self : this);
+</script>
+<script>
+/*
+ * app.js — UI controller for both modes. All mathematics lives in engine.js;
+ * both modes hand a graph to the SAME colouring engine.
+ */
+(function () {
+  'use strict';
+  const E = window.ColoringEngine;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const view = new GraphView($('graphSvg'));
+
+  const ALGO_INFO = {
+    greedy: { rule: 'Vertices in input (sorted) order; each gets the smallest colour not used by a coloured neighbour.',
+              explain: 'Greedy: visit vertices in the order they are listed and give each the smallest colour that none of its already-coloured neighbours has. Fast, but the result depends on the order.' },
+    wp: { rule: 'Sort by degree (high→low). For colour c, sweep the list giving c to every uncoloured vertex not adjacent to one already coloured c.',
+          explain: 'Welsh–Powell: sort vertices by decreasing degree. Take colour 1 and sweep down the list, colouring every vertex that is not adjacent to one already given colour 1; repeat with colour 2, 3, … until every vertex is coloured.' },
+    dsatur: { rule: 'Pick the uncoloured vertex with most distinct neighbour colours (saturation); ties → highest uncoloured degree.',
+              explain: 'DSATUR: at every step choose the uncoloured vertex whose neighbours already use the most DIFFERENT colours (its saturation degree) — the most constrained vertex — and give it the smallest free colour. Ties are broken by degree in the uncoloured part of the graph.' },
+    exact: { rule: 'Lower bound ω(G) from a maximum clique; DSATUR-ordered branch-and-bound searches for a colouring with fewer colours.',
+             explain: 'Exact: a maximum clique gives a lower bound ω(G) ≤ χ(G). If DSATUR already meets it, the colouring is optimal. Otherwise branch-and-bound tries every way to colour with fewer colours (pruning hopeless branches); if none exists, the minimum is proved.' },
+  };
+
+  const S = { mode: 'reg', students: null, graph: null, results: null, sel: 'dsatur', step: 0, timer: null, lastEdges: null };
+
+  /* ---------------- messages ---------------- */
+  function msgs(box, errors, warnings, infos) {
+    const parts = [];
+    (errors || []).forEach(m => parts.push(`<div class="msg err">✗ ${esc(m)}</div>`));
+    (warnings || []).forEach(m => parts.push(`<div class="msg warn">⚠ ${esc(m)}</div>`));
+    (infos || []).forEach(m => parts.push(`<div class="msg ok">${m}</div>`));
+    $(box).innerHTML = parts.join('');
+  }
+
+  /* ---------------- mode switching ---------------- */
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setMode(t.dataset.mode)));
+  function setMode(m) {
+    S.mode = m;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode === m));
+    $('regInput').hidden = m !== 'reg';
+    $('regTableCard').hidden = m !== 'reg' || !S.students;
+    $('genInput').hidden = m !== 'gen';
+    $('solveStep').textContent = m === 'reg' ? '3' : '2';
+    $('gTitle').textContent = m === 'reg' ? 'Conflict graph' : 'Graph';
+    $('dragHint').textContent = m === 'reg' ? 'Drag vertices to rearrange. Hover an edge to see which students create the conflict.' : 'Drag vertices to rearrange. Hover a vertex or edge for details.';
+    clearGraph();
+  }
+
+  function clearGraph() {
+    stopPlay();
+    S.graph = null; S.results = null; S.lastEdges = null;
+    view.graph = null; view.render();
+    $('emptyState').hidden = false; $('results').hidden = true; $('stepBar').hidden = true; $('stNote').hidden = true;
+    $('gStats').textContent = ''; $('legend').innerHTML = ''; $('limitMsg').hidden = true; $('solveBtn').disabled = true;
+  }
+
+  /* ---------------- Mode 1: registrations ---------------- */
+  $('loadSample').onclick = () => { $('regText').value = window.SAMPLES.registrations; buildFromText(); };
+  $('csvFile').onchange = ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { $('regText').value = rd.result; buildFromText(); };
+    rd.readAsText(f); ev.target.value = '';
+  };
+  $('buildReg').onclick = buildFromText;
+
+  function buildFromText() {
+    const p = E.parseRegistrations($('regText').value);
+    if (p.errors.length) {
+      msgs('regMsgs', p.errors, p.warnings);
+      S.students = null; $('regTableCard').hidden = true; clearGraph(); return;
+    }
+    S.students = p.students;
+    msgs('regMsgs', [], p.warnings, [`✓ ${p.students.size} students, ${p.registrations} registrations, ${p.courses.length} distinct subject codes.`]);
+    msgs('updMsgs');
+    regenerate({ resetLayout: true });
+  }
+
+  function regenerate(opts) {
+    const g = E.buildConflictGraph(S.students);
+    const prev = S.graph;
+    loadGraph(g, opts);
+    renderRegTable();
+    if (opts && opts.diffFrom) {
+      const old = opts.diffFrom;
+      const oldE = new Set(old.edges.map(([a, b]) => E.edgeKey(old.labels[a], old.labels[b])));
+      const newE = new Set(g.edges.map(([a, b]) => E.edgeKey(g.labels[a], g.labels[b])));
+      const addV = g.labels.filter(l => !old.labels.includes(l)), remV = old.labels.filter(l => !g.labels.includes(l));
+      const addE = [...newE].filter(k => !oldE.has(k)), remE = [...oldE].filter(k => !newE.has(k));
+      const fmt = a => a.map(k => k.replace('|', '–')).join(', ');
+      msgs('updMsgs', [], [], [`✓ Graph regenerated: |V| ${old.n} → ${g.n}, |E| ${old.m} → ${g.m}.` +
+        (addV.length ? `<br>New vertices: <b>${esc(addV.join(', '))}</b>` : '') + (remV.length ? `<br>Removed vertices: <b>${esc(remV.join(', '))}</b>` : '') +
+        (addE.length ? `<br>New edges: <b>${esc(fmt(addE))}</b>` : '') + (remE.length ? `<br>Removed edges: <b>${esc(fmt(remE))}</b>` : '') +
+        (!addE.length && !remE.length && !addV.length && !remV.length ? '<br>No change to the graph (the new pairs were already conflicts).' : '')]);
+      if (opts.resolve && !E.checkLimits(g).length) solve();
+    }
+    return prev;
+  }
+
+  function renderRegTable() {
+    $('regTableCard').hidden = S.mode !== 'reg';
+    $('regCount').textContent = `(${S.students.size} students)`;
+    $('regTable').querySelector('tbody').innerHTML = Array.from(S.students.entries()).map(([s, cs]) =>
+      `<tr><td><b>${esc(s)}</b></td><td>${cs.map(c => `<span class="chip">${esc(c)}</span>`).join(' ')}</td><td><button class="tiny" data-edit="${esc(s)}">edit</button></td></tr>`).join('');
+    $('regTable').querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
+      $('updStudent').value = b.dataset.edit; $('updCourses').value = S.students.get(b.dataset.edit).join(', '); $('updCourses').focus();
+    });
+  }
+
+  function applyUpdate(remove) {
+    if (!S.students) return;
+    const id = $('updStudent').value.trim();
+    if (!id) return msgs('updMsgs', ['Enter a student ID.']);
+    const copy = new Map(S.students);
+    if (remove) {
+      if (!copy.has(id)) return msgs('updMsgs', [`Student ${id} is not in the registration data.`]);
+      copy.delete(id);
+      if (copy.size === 0) return msgs('updMsgs', ['Cannot remove the last student — use Reset instead.']);
+    } else {
+      // validate through the same parser used for full input
+      const p = E.parseRegistrations(`${id},${$('updCourses').value.split(/[,;\s]+/).filter(Boolean).join(',')}`);
+      if (p.errors.length) return msgs('updMsgs', p.errors.map(e => e.replace(/^Line 1/, 'Update')));
+      copy.set(id, p.students.get(id));
+      if (p.warnings.length) setTimeout(() => $('updMsgs').insertAdjacentHTML('beforeend', p.warnings.map(w => `<div class="msg warn">⚠ ${esc(w.replace(/^Line 1/, 'Update'))}</div>`).join('')), 0);
+    }
+    const before = S.graph, hadResults = !!S.results;
+    S.students = copy;
+    $('regText').value = 'Student,Courses...\n' + E.registrationsToText(copy);
+    regenerate({ diffFrom: before, resolve: hadResults });
+  }
+  $('updApply').onclick = () => applyUpdate(false);
+  $('updRemove').onclick = () => applyUpdate(true);
+
+  /* ---------------- Mode 2: general graph ---------------- */
+  document.querySelectorAll('.sample').forEach(b => b.onclick = () => {
+    const s = window.SAMPLES[b.dataset.sample]; $('genV').value = s.v; $('genE').value = s.e; buildGeneral();
+  });
+  $('buildGen').onclick = buildGeneral;
+  function buildGeneral() {
+    const p = E.parseGeneralGraph($('genV').value, $('genE').value);
+    if (p.errors.length) { msgs('genMsgs', p.errors.concat(['Graph not built — fix the items above (nothing was discarded automatically).'])); clearGraph(); return; }
+    msgs('genMsgs', [], [], [`✓ Valid simple graph: ${p.graph.n} vertices, ${p.graph.m} edges.`]);
+    loadGraph(p.graph, { resetLayout: true });
+  }
+
+  /* ---------------- shared: graph + solve ---------------- */
+  function loadGraph(g, opts) {
+    stopPlay();
+    S.graph = g; S.results = null;
+    $('emptyState').hidden = true; $('results').hidden = true; $('stepBar').hidden = true; $('stNote').hidden = true; $('legend').innerHTML = '';
+    const iso = g.degree.filter(d => d === 0).length;
+    const comps = components(g);
+    $('gStats').innerHTML = `|V| = ${g.n} · |E| = ${g.m}` + (g.pairChecks != null ? ` · ${g.pairChecks} pairs checked, ${g.repeatedConflicts} repeats merged` : '') +
+      ` · ${comps} component${comps === 1 ? '' : 's'}` + (iso ? ` · ${iso} isolated` : '');
+    const lim = E.checkLimits(g);
+    $('limitMsg').hidden = !lim.length;
+    $('limitMsg').innerHTML = lim.map(esc).join('<br>');
+    $('solveBtn').disabled = lim.length > 0;
+    view.setGraph(g, opts);
+  }
+
+  function components(g) {
+    const seen = new Array(g.n).fill(false); let c = 0;
+    for (let s = 0; s < g.n; s++) { if (seen[s]) continue; c++; const st = [s]; seen[s] = true;
+      while (st.length) { const v = st.pop(); for (const u of g.adj[v]) if (!seen[u]) { seen[u] = true; st.push(u); } } }
+    return c;
+  }
+
+  $('algoSel').onchange = () => { S.sel = $('algoSel').value; showExplain(); if (S.results) showResult(); };
+  function showExplain() { $('algoExplain').textContent = ALGO_INFO[S.sel].explain; }
+  $('solveBtn').onclick = solve;
+
+  function solve() {
+    if (!S.graph || E.checkLimits(S.graph).length) return;
+    stopPlay();
+    const g = S.graph;
+    S.results = {};
+    for (const k of ['greedy', 'wp', 'dsatur', 'exact']) {
+      const r = E.runTimed(k, g, 15);
+      r.verify = E.verify(g, r.colors);
+      S.results[k] = r;
+    }
+    $('results').hidden = false;
+    showResult();
+  }
+
+  function showResult() {
+    const g = S.graph, R = S.results, r = R[S.sel], ex = R.exact;
+    const chi = ex.proved ? ex.chi : null;
+    // comparison table
+    $('cmpTable').querySelector('tbody').innerHTML = ['greedy', 'wp', 'dsatur', 'exact'].map(k => {
+      const x = R[k];
+      const opt = chi != null ? (x.k === chi ? '<span class="yes">Yes — proved</span>' : `<span class="no">No (χ = ${chi})</span>`)
+                              : (x.k === ex.lowerBound ? '<span class="yes">Yes — meets ω</span>' : '<span class="muted">not proved</span>');
+      return `<tr class="${k === S.sel ? 'selrow' : ''}" data-k="${k}"><td><b>${esc(x.label)}</b></td><td class="rule">${esc(ALGO_INFO[k].rule)}</td><td class="num">${x.k}</td>` +
+        `<td>${x.verify.valid ? '<span class="yes">✓ valid</span>' : `<span class="no">✗ ${x.verify.conflicts.length} conflicts</span>`}</td><td class="num">${x.ms.toFixed(4)}</td><td>${opt}</td></tr>`;
+    }).join('');
+    $('cmpTable').querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => { $('algoSel').value = tr.dataset.k; $('algoSel').onchange(); });
+
+    // optimality box
+    const cl = ex.clique.map(v => g.labels[v]);
+    $('optBox').innerHTML = `<h3>Optimality analysis</h3>
+      <p><b>Lower bound:</b> a maximum clique has ${ex.lowerBound} ${ex.lowerBound === 1 ? 'vertex' : 'vertices'} <span class="mono">{${esc(cl.join(', '))}}</span>. Every pair in it conflicts, so they need ${ex.lowerBound} different ${S.mode === "reg" ? "slots" : "colours"}: χ(G) ≥ ω(G) = ${ex.lowerBound}.</p>
+      <p><b>Exact result:</b> ${ex.proved ? `χ(G) = <b>${chi}</b> — ${esc(ex.method)}.` : `not proved within the search budget (${esc(ex.method)}); results are reported as valid colourings only.`}</p>
+      <p class="verdict ${r.k === chi ? 'good' : 'meh'}"><b>${esc(r.label)}</b> uses ${r.k} colour${r.k === 1 ? '' : 's'}: ` +
+      (chi != null ? (r.k === chi ? 'this is a <b>minimum</b> colouring (optimality proved).' : `a <b>valid</b> colouring, but <b>not optimal</b> — ${r.k - chi} more than χ(G) = ${chi}.`) : 'a valid colouring; optimality not established.') + '</p>';
+
+    // legend
+    const k = r.k;
+    $('legend').innerHTML = Array.from({ length: k }, (_, i) => `<span class="lg"><i style="background:${GraphView.colorOf(i + 1)}"></i>${S.mode === 'reg' ? 'Slot' : 'Colour'} ${i + 1}</span>`).join('');
+
+    // timetable / colour classes
+    const classes = E.colorClasses(g, r.colors);
+    if (S.mode === 'reg') {
+      $('ttTitle').textContent = `Examination timetable — ${k} slot${k === 1 ? '' : 's'}`;
+      const tt = E.buildTimetable(g, r.colors, S.students);
+      $('timetable').innerHTML = `<table class="tt"><thead><tr><th>Slot (colour)</th><th>Suggested session</th><th>Courses examined together</th><th>Students sitting</th></tr></thead><tbody>` +
+        tt.slots.map(s => `<tr><td><span class="sw" style="background:${GraphView.colorOf(s.slot)}"></span><b>Slot ${s.slot}</b></td><td>${sessionName(s.slot)}</td>` +
+          `<td>${s.courses.map(c => `<span class="chip">${esc(c)}</span>`).join(' ')}</td><td class="num">${s.students}</td></tr>`).join('') + '</tbody></table>' +
+        `<p class="hint small">Each colour class is an independent set — no two courses in it share a student — so they can be examined in the same slot. Session names are an illustrative mapping (two sessions per day).</p>`;
+      $('stuDetails').hidden = false;
+      const slotOf = new Map(g.labels.map((l, i) => [l, r.colors[i]]));
+      $('stuTable').querySelector('tbody').innerHTML = Array.from(S.students.entries()).map(([s, cs]) => {
+        const sl = cs.map(c => slotOf.get(c)); const ok = new Set(sl).size === sl.length;
+        return `<tr><td>${esc(s)}</td><td>${cs.map((c, i) => `${esc(c)} → <b>${sl[i]}</b>`).join(', ')}</td><td>${ok ? '<span class="yes">✓</span>' : '<span class="no">✗</span>'}</td></tr>`;
+      }).join('');
+      S.timetable = tt;
+    } else {
+      $('ttTitle').textContent = `Vertex colours & colour classes — ${k} colour${k === 1 ? '' : 's'}`;
+      $('timetable').innerHTML = `<table class="tt"><thead><tr><th>Colour</th><th>Colour class (independent set)</th><th>Size</th></tr></thead><tbody>` +
+        classes.map((cs, i) => `<tr><td><span class="sw" style="background:${GraphView.colorOf(i + 1)}"></span><b>Colour ${i + 1}</b></td><td>${cs.map(c => `<span class="chip">${esc(c)}</span>`).join(' ')}</td><td class="num">${cs.length}</td></tr>`).join('') + '</tbody></table>';
+      $('stuDetails').hidden = true; S.timetable = null;
+    }
+
+    // verification
+    const v = r.verify;
+    let stuLine = '';
+    if (S.mode === 'reg') {
+      const cl2 = S.timetable.clashes;
+      stuLine = `<li>${cl2.length === 0 ? '✓' : '✗'} ${S.students.size - new Set(cl2.map(x => x.split(':')[0])).size} / ${S.students.size} students have all their exams in different slots.</li>`;
+    }
+    $('verifyBox').innerHTML = `<div class="verify ${v.valid ? 'good' : 'bad'}"><div class="big">${v.valid ? '✓ Proper colouring' : '✗ Invalid colouring'}</div><ul>
+      <li>${v.edgesChecked} / ${g.m} edges checked: ${v.conflicts.length} with equal colours at both ends.</li>
+      <li>${g.n - v.uncolored.length} / ${g.n} vertices coloured.</li>${stuLine}</ul>` +
+      (v.conflicts.length ? `<p>Conflicting pairs: ${v.conflicts.map(([a, b, c]) => `${esc(g.labels[a])}–${esc(g.labels[b])} (colour ${c})`).join(', ')}</p>` : '') + '</div>';
+    $('edgeTable').querySelector('tbody').innerHTML = g.edges.map(([a, b], i) => {
+      const w = g.witnesses ? g.witnesses.get(E.edgeKey(g.labels[a], g.labels[b])) : null;
+      const ok = r.colors[a] !== r.colors[b];
+      return `<tr><td>${i + 1}</td><td>${esc(g.labels[a])} — ${esc(g.labels[b])}</td><td>${r.colors[a]} ≠ ${r.colors[b]}</td><td>${ok ? '<span class="yes">✓</span>' : '<span class="no">✗</span>'}</td><td class="witcol">${w ? esc(w.join(', ')) : '—'}</td></tr>`;
+    }).join('');
+    document.querySelectorAll('.witcol').forEach(c => c.hidden = !g.witnesses);
+    $('vTable').querySelector('tbody').innerHTML = g.labels.map((l, i) => `<tr><td>${esc(l)}</td><td class="num">${g.degree[i]}</td><td><span class="sw" style="background:${GraphView.colorOf(r.colors[i])}"></span>${r.colors[i]}</td></tr>`).join('');
+
+    // graph + steps
+    S.step = r.steps.length;
+    $('stepBar').hidden = false;
+    const stepping = S.sel !== 'exact';
+    ['stFirst', 'stPrev', 'stPlay', 'stNext'].forEach(id => $(id).disabled = !stepping);
+    drawStep();
+  }
+
+  function sessionName(slot) { const day = Math.ceil(slot / 2); return `Day ${day} · ${slot % 2 ? 'Morning (FN)' : 'Afternoon (AN)'}`; }
+
+  /* ---------------- step-by-step ---------------- */
+  function drawStep() {
+    const g = S.graph, r = S.results[S.sel];
+    const colors = new Array(g.n).fill(0);
+    for (let i = 0; i < S.step; i++) colors[r.steps[i].v] = r.steps[i].color;
+    const conflicts = new Set();
+    for (const [a, b] of g.edges) if (colors[a] && colors[a] === colors[b]) conflicts.add(a + '-' + b);
+    const cur = S.step > 0 && S.step <= r.steps.length && S.step < r.steps.length ? r.steps[S.step - 1] : null;
+    view.update({ colors, conflicts, active: cur ? cur.v : null, hideBadges: g.n > 20, badge: S.mode === 'reg' ? 'slot' : 'colour' });
+    $('stCount').textContent = S.sel === 'exact' ? 'final result (exact search)' : `step ${S.step} / ${r.steps.length}`;
+    const note = $('stNote');
+    if (S.sel === 'exact') { note.hidden = false; note.innerHTML = 'Exact method: final optimal colouring shown (the search explores many partial colourings, so it is not animated).'; }
+    else if (S.step === 0) { note.hidden = false; note.innerHTML = `<b>${esc(r.label)}</b> — vertex order: ${r.order.map(v => esc(g.labels[v])).join(' → ')}. Press ▶ to colour one vertex at a time.`; }
+    else if (S.step === r.steps.length) { note.hidden = false; note.innerHTML = `Done: <b>${r.k}</b> colours. ` + (cur ? '' : 'Every vertex coloured; see the correctness check below.'); }
+    else { const s = r.steps[S.step - 1]; note.hidden = false; note.innerHTML = `Step ${S.step}: <b>${esc(g.labels[s.v])}</b> ← colour ${s.color}. ${esc(s.note)}`; }
+    $('stPlay').textContent = S.timer ? '❚❚ Pause' : '▶ Play';
+  }
+  function go(n) { const r = S.results && S.results[S.sel]; if (!r) return; S.step = Math.max(0, Math.min(r.steps.length, n)); drawStep(); }
+  function stopPlay() { if (S.timer) { clearInterval(S.timer); S.timer = null; } if ($('stPlay')) $('stPlay').textContent = '▶ Play'; }
+  $('stFirst').onclick = () => { stopPlay(); go(0); };
+  $('stPrev').onclick = () => { stopPlay(); go(S.step - 1); };
+  $('stNext').onclick = () => { stopPlay(); go(S.step + 1); };
+  $('stLast').onclick = () => { stopPlay(); go(Infinity); };
+  $('stPlay').onclick = () => {
+    if (S.timer) { stopPlay(); drawStep(); return; }
+    const r = S.results[S.sel]; if (S.step >= r.steps.length) S.step = 0;
+    const tick = () => { if (S.step >= r.steps.length) { stopPlay(); drawStep(); return; } go(S.step + 1); };
+    S.timer = setInterval(tick, 1650 - +$('stSpeed').value); tick();
+  };
+
+  /* ---------------- CSV export ---------------- */
+  $('dlCsv').onclick = () => {
+    const g = S.graph, r = S.results && S.results[S.sel]; if (!r) return;
+    const classes = E.colorClasses(g, r.colors);
+    const head = S.mode === 'reg' ? 'Slot,Session,Courses' : 'Colour,Vertices';
+    const rows = classes.map((cs, i) => S.mode === 'reg' ? `${i + 1},${sessionName(i + 1)},"${cs.join(' ')}"` : `${i + 1},"${cs.join(' ')}"`);
+    const blob = new Blob([head + '\n' + rows.join('\n') + '\n'], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = (S.mode === 'reg' ? 'exam_timetable_' : 'colouring_') + S.sel + '.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
+  /* ---------------- reset ---------------- */
+  $('resetBtn').onclick = () => {
+    ['regText', 'genV', 'genE', 'updStudent', 'updCourses'].forEach(id => $(id).value = '');
+    ['regMsgs', 'genMsgs', 'updMsgs'].forEach(id => $(id).innerHTML = '');
+    S.students = null; $('regTableCard').hidden = true;
+    view.pos = new Map(); clearGraph();
+  };
+
+  showExplain();
+  // expose for automated screenshots / debugging
+  window.__app = { S, solve, go, setMode, buildFromText, buildGeneral, applyUpdate };
+})();
+</script>
 </body>
 </html>
