@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exam Timetable Scheduler — Vertex Colouring | DMGT</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">χ</div>
+    <div>
+      <h1>Exam Timetable Scheduler</h1>
+      <p class="sub">Discrete Mathematics &amp; Graph Theory · Group Experiential Learning · an application of vertex colouring</p>
+    </div>
+  </div>
+  <button id="resetBtn" class="ghost" title="Clear all input and results">↺ Reset</button>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-mode="reg" role="tab">① Registration-based Examination Scheduling</button>
+    <button class="tab" data-mode="gen" role="tab">② General Graph Colouring</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ======================= INPUT COLUMN ======================= -->
+  <section class="col input-col">
+
+    <!-- Mode 1: registrations -->
+    <div class="card" id="regInput">
+      <h2><span class="step">1</span> Registration input</h2>
+      <p class="hint">One student per line: <code>S1,25CS2304,25CS2101,25CS2203</code> or <code>S1: 25CS2304, 25CS2101</code>. A header row starting with “Student” is skipped.</p>
+      <div class="btnrow">
+        <button id="loadSample" class="small">Load supplied 20-student dataset</button>
+        <label class="small filebtn">Upload CSV…<input type="file" id="csvFile" accept=".csv,.txt,text/csv"></label>
+      </div>
+      <textarea id="regText" spellcheck="false" rows="10" placeholder="Student,Course1,Course2,Course3&#10;S1,25CS2304,25CS2101,25CS2203"></textarea>
+      <button id="buildReg" class="primary">Validate &amp; build conflict graph</button>
+      <div id="regMsgs" class="msgs"></div>
+    </div>
+
+    <div class="card" id="regTableCard" hidden>
+      <h2><span class="step">2</span> Registrations <small id="regCount"></small></h2>
+      <div class="tablewrap short"><table id="regTable"><thead><tr><th>Student</th><th>Courses R(s)</th><th></th></tr></thead><tbody></tbody></table></div>
+      <h3>Dynamic update</h3>
+      <p class="hint">Add a new student, or change an existing student’s courses. The conflict graph and timetable are regenerated automatically.</p>
+      <div class="formrow">
+        <input id="updStudent" placeholder="Student ID (S21)">
+        <input id="updCourses" placeholder="Courses, e.g. 25CS2202, 25CS2401">
+      </div>
+      <div class="btnrow">
+        <button id="updApply" class="small primary">Add / update student</button>
+        <button id="updRemove" class="small">Remove student</button>
+      </div>
+      <div id="updMsgs" class="msgs"></div>
+    </div>
+
+    <!-- Mode 2: general graph -->
+    <div class="card" id="genInput" hidden>
+      <h2><span class="step">1</span> Graph input</h2>
+      <p class="hint">Limits: 1 ≤ |V| ≤ 50 and 0 ≤ |E| ≤ 50. Self-loops, duplicate edges, unknown labels and over-limit input are rejected with a message — nothing is silently discarded.</p>
+      <div class="btnrow">
+        <span class="lbl">Examples:</span>
+        <button class="small sample" data-sample="crown">Crown S₅ (greedy trap)</button>
+        <button class="small sample" data-sample="grotzsch">Grötzsch (ω=2, χ=4)</button>
+        <button class="small sample" data-sample="boundary">30 V / 50 E</button>
+        <button class="small sample" data-sample="empty">No edges</button>
+      </div>
+      <label class="field">Vertex labels <small>(separated by commas, spaces or new lines)</small>
+        <textarea id="genV" rows="3" spellcheck="false" placeholder="A, B, C, D, E"></textarea></label>
+      <label class="field">Edges <small>(one per line: <code>A-B</code>, <code>A,B</code> or <code>A B</code>)</small>
+        <textarea id="genE" rows="8" spellcheck="false" placeholder="A-B&#10;B-C&#10;C-A"></textarea></label>
+      <button id="buildGen" class="primary">Validate &amp; build graph</button>
+      <div id="genMsgs" class="msgs"></div>
+    </div>
+
+    <!-- shared: algorithm -->
+    <div class="card" id="solveCard">
+      <h2><span class="step" id="solveStep">3</span> Colouring engine</h2>
+      <label class="field">Algorithm
+        <select id="algoSel">
+          <option value="greedy">Greedy — vertices in input order</option>
+          <option value="wp">Welsh–Powell — decreasing degree</option>
+          <option value="dsatur" selected>DSATUR — highest saturation first</option>
+          <option value="exact">Exact — clique bound + branch-and-bound</option>
+        </select></label>
+      <p id="algoExplain" class="hint"></p>
+      <button id="solveBtn" class="primary" disabled>▶ Solve / Run</button>
+      <p class="hint small">Solve runs all four algorithms on the same graph for the comparison table; the selected one is drawn and used for the timetable.</p>
+    </div>
+  </section>
+
+  <!-- ======================= GRAPH + RESULTS ======================= -->
+  <section class="col out-col">
+    <div class="card graphcard">
+      <div class="graphhead">
+        <h2><span id="gTitle">Conflict graph</span> <small id="gStats"></small></h2>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div id="limitMsg" class="msg err" hidden></div>
+      <div class="svgwrap"><svg id="graphSvg" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet" aria-label="Graph visualisation"></svg>
+        <div id="emptyState" class="empty">Enter data and build the graph to see it here.</div></div>
+      <div class="stepbar" id="stepBar" hidden>
+        <button id="stFirst" class="small" title="Start">⏮</button>
+        <button id="stPrev" class="small" title="Previous step">◀</button>
+        <button id="stPlay" class="small primary" title="Play / pause">▶ Play</button>
+        <button id="stNext" class="small" title="Next step">▶</button>
+        <button id="stLast" class="small" title="Final colouring">⏭</button>
+        <span id="stCount" class="stcount"></span>
+        <label class="speed">speed <input type="range" id="stSpeed" min="150" max="1500" value="700" step="50"></label>
+      </div>
+      <p id="stNote" class="stnote" hidden></p>
+      <p class="hint small" id="dragHint">Drag vertices to rearrange. Hover an edge to see which students create the conflict.</p>
+    </div>
+
+    <div id="results" hidden>
+      <div class="card">
+        <h2>Algorithm comparison</h2>
+        <div class="tablewrap"><table id="cmpTable"><thead><tr><th>Algorithm</th><th>Selection rule</th><th>Colours used</th><th>Valid?</th><th>Time (ms)</th><th>Optimal?</th></tr></thead><tbody></tbody></table></div>
+        <div id="optBox" class="optbox"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card" id="ttCard">
+          <h2 id="ttTitle">Examination timetable</h2>
+          <div id="timetable"></div>
+          <button id="dlCsv" class="small">⬇ Download timetable (CSV)</button>
+        </div>
+        <div class="card">
+          <h2>Correctness check</h2>
+          <div id="verifyBox"></div>
+          <details><summary>Every conflict edge, checked</summary><div class="tablewrap short"><table id="edgeTable"><thead><tr><th>#</th><th>Edge</th><th>Colours</th><th>OK</th><th class="witcol">Shared by</th></tr></thead><tbody></tbody></table></div></details>
+          <details id="stuDetails"><summary>Each student’s exam slots</summary><div class="tablewrap short"><table id="stuTable"><thead><tr><th>Student</th><th>Exams → slot</th><th>OK</th></tr></thead><tbody></tbody></table></div></details>
+          <details><summary>Vertices, degrees and colours</summary><div class="tablewrap short"><table id="vTable"><thead><tr><th>Vertex</th><th>Degree</th><th>Colour</th></tr></thead><tbody></tbody></table></div></details>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>Model the registration data · Construct the graph · Implement the colouring algorithm · Generate the timetable. &nbsp;All colouring algorithms are implemented from scratch in <code>js/engine.js</code>; no graph library is used.</footer>
+
+<script src="js/engine.js"></script>
+<script src="js/samples.js"></script>
+<script src="js/graphview.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

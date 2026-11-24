@@ -1,0 +1,25 @@
+# Grötzsch (Mycielski) graph: 11 vertices, 20 edges, triangle-free (omega = 2) but chi = 4.
+# The clique bound is NOT enough here - branch-and-bound must prove that no 3-colouring exists.
+VERTICES:
+u1, u2, u3, u4, u5, v1, v2, v3, v4, v5, w
+EDGES:
+u1-u2
+u2-u3
+u3-u4
+u4-u5
+u5-u1
+v1-u5
+v2-u1
+v3-u2
+v4-u3
+v5-u4
+v1-u2
+v2-u3
+v3-u4
+v4-u5
+v5-u1
+w-v1
+w-v2
+w-v3
+w-v4
+w-v5
